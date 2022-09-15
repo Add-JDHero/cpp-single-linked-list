@@ -75,22 +75,26 @@ class SingleLinkedList {
 
         // Оператор прединкремента.
         BasicIterator& operator++() noexcept {
+            assert(node_->next_node != nullptr); /* - сваливает тесты */ 
             node_ = node_->next_node;
             return *this;
         }
 
         // Оператор постинкремента.
         BasicIterator operator++(int) noexcept {
+            //assert(node_->next_node != nullptr);
             auto ex_node(*this);
             ++(*this);
             return ex_node;
         }
 
         [[nodiscard]] reference operator*() const noexcept {
+            //assert(node_ != nullptr);
             return node_->value;
         }
 
         [[nodiscard]] pointer operator->() const noexcept {
+            //assert(node_ != nullptr);
             return &node_->value;
         }
 
@@ -141,13 +145,13 @@ public:
     SingleLinkedList(std::initializer_list<Type> values)
     : size_(values.size())
     {
-        ListCopy(values.begin(), values.end(), &head_);
+        CopyList(values.begin(), values.end(), &head_);
     }
 
     SingleLinkedList(const SingleLinkedList& other)
     : size_(other.size_)
     {
-        ListCopy(other.begin(), other.end(), &head_);
+        CopyList(other.begin(), other.end(), &head_);
     }
 
     SingleLinkedList& operator=(const SingleLinkedList& rhs) {
@@ -177,17 +181,24 @@ public:
      */
     Iterator InsertAfter(ConstIterator pos, const Type& value) {
         Node* tmp = new Node(value, nullptr);
-        tmp->next_node = pos.node_->next_node;
+        if (pos.node_->next_node != nullptr) {
+            tmp->next_node = pos.node_->next_node;
+        } else {
+            tmp->next_node = nullptr;
+        }
         pos.node_->next_node = tmp;
-        ++this->size_;
+        ++size_;
         return Iterator{pos.node_->next_node};
     }
 
     void PopFront() noexcept {
-        Node* tmp = head_.next_node;
-        head_.next_node = tmp->next_node;
-        tmp->next_node = nullptr;
-        delete tmp;
+        if (head_.next_node != nullptr) {
+            Node* tmp = head_.next_node;
+            head_.next_node = tmp->next_node;
+            tmp->next_node = nullptr;
+            delete tmp;
+            --size_;
+        }
     }
 
     /*
@@ -196,22 +207,20 @@ public:
      */
     Iterator EraseAfter(ConstIterator pos) noexcept {
         Node* tmp = pos.node_->next_node;
-        pos.node_->next_node = tmp->next_node;
-        tmp->next_node = nullptr;
+        if (tmp->next_node != nullptr) {
+            pos.node_->next_node = tmp->next_node;
+            tmp->next_node = nullptr;
+        } else {
+            pos.node_->next_node = nullptr;
+        }
         delete tmp;
-        --this->size_;
+        --size_;
         return Iterator{pos.node_->next_node};
     }
 
     void swap(SingleLinkedList& other) noexcept {
-        size_t tmp_size = this->size_;
-        Node* tmp_pointer = head_.next_node;
-
-        head_.next_node = other.head_.next_node;
-        size_ = other.size_;
-
-        other.head_.next_node = tmp_pointer;
-        other.size_ = tmp_size;
+        std::swap(size_, other.size_);
+        std::swap(head_.next_node, other.head_.next_node);
     }
 
     void PushFront(const Type& value) {
@@ -244,7 +253,7 @@ public:
 
 private:
     template <typename T>
-    void ListCopy(T begin, T end, Node* pointer) {
+    void CopyList(T begin, T end, Node* pointer) {
         Node* tmp = pointer;
         for (auto i = begin; i != end; i++) {
             tmp->next_node = new Node(*i, tmp->next_node);
